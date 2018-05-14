@@ -8,6 +8,7 @@ function preload ()
 }
 
 var PI = 3.1414926535;
+var sq2 = Math.sqrt(2);
 var vel = 300;
 var player1;
 var cursors;
@@ -71,26 +72,34 @@ function create() {
 
 function update() {
 	player1.body.setZeroVelocity();
+	var vx = 0, vy = 0;
 	if (cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A))
     {
 		player1.animations.play('go');
-        player1.body.moveLeft(vel);
+        vx = -1;
     }
     else if (cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D))
     {
 		player1.animations.play('go');
-        player1.body.moveRight(vel);
+        vx = 1;
     }
     if (cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.W))
     {
 		player1.animations.play('go');
-		player1.body.moveUp(vel);
+		vy = -1;
     }
     else if (cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S))
     {
 		player1.animations.play('go');
-		player1.body.moveDown(vel);
+		vy = 1;
     }
+    if (vx != 0 && vy != 0) {
+		player1.body.moveDown(vy*vel/sq2);
+		player1.body.moveRight(vx*vel/sq2);
+	} else {
+		player1.body.moveDown(vy*vel);
+		player1.body.moveRight(vx*vel);
+	}
     if(player1.body.velocity.x == 0 && player1.body.velocity.y == 0) {
 		player1.animations.stop();
         player1.frame = 1;
@@ -101,9 +110,12 @@ function update() {
         weapon.fire();
     }
     weapon.bullets.forEachAlive(function(bull){
-		//game.physics.arcade.collide(b0, bull); не работает
-		//console.log(bull.body.type);
+		//тут вроде должны быть отражения и подобное.
 	});
+}
+
+function collisionHandler() {
+	
 }
 
 function render() {
