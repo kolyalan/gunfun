@@ -15,17 +15,18 @@ var cursors;
 var boxes;
 var b0, b1;
 var weapon, fire_button;
+var bullet;
 
 function create() {
 	game.time.advancedTiming = true;
 	game.input.mouse.capture = true;
 	game.physics.startSystem(Phaser.Physics.P2JS);
-	game.physics.p2.restitution = 0;
+	game.physics.p2.restitution = 1;
 	game.stage.backgroundColor = "#EEEEEE";
 
 
 	player1 = game.add.sprite(0, 0, 'image');
-	game.physics.p2.enable(player1, true);
+	game.physics.p2.enable(player1, true);//true - debug
 	player1.frame = 1;
 	player1.animations.add('go', [1, 0, 1, 2], 7, true);
 	player1.enableBody = true;
@@ -68,6 +69,13 @@ function create() {
 	b1.anchor.setTo(0.5, 0.5);
 	b1.body.kinematic = true;
 	b1.body.rotation = 1.8243;//случайное, вообще-то число
+	bullet = game.add.sprite(0, 0, 'bullet');
+	game.physics.p2.enable(bullet, true);
+	bullet.body.dynamic = true;
+	bullet.anchor.setTo(0.5, 0.5);
+	bullet.body.damping = 0; //part of velocity lozed per second [0..1];
+	
+	bullet.kill();
 }
 
 function update() {
@@ -107,7 +115,18 @@ function update() {
     player1.body.rotation = game.physics.arcade.angleToPointer(player1);
 	weapon.fireAngle = Phaser.Math.radToDeg(game.physics.arcade.angleToPointer(player1));
     if(game.input.activePointer.leftButton.isDown) {
-        weapon.fire();
+        bullet.body.rotation = player1.body.rotation;
+		bullet.body.x = player1.body.x + 93*Math.cos(bullet.body.rotation);
+		bullet.body.y = player1.body.y + 93*Math.sin(bullet.body.rotation);
+        bullet.body.moveRight(600*Math.cos(bullet.body.rotation));
+        bullet.body.moveDown(600*Math.sin(bullet.body.rotation));
+        setTimeout(function() {
+			bullet.revive();
+			setTimeout(function() {
+				bullet.kill();
+			}, 10000);
+		}, 1000);
+        //weapon.fire();
     }
     weapon.bullets.forEachAlive(function(bull){
 		//тут вроде должны быть отражения и подобное.
