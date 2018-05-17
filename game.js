@@ -21,7 +21,7 @@ function create() {
 	game.time.advancedTiming = true;
 	game.input.mouse.capture = true;
 	game.physics.startSystem(Phaser.Physics.P2JS);
-	game.physics.p2.restitution = 1;
+	game.physics.p2.restitution = 0.8;
 	game.stage.backgroundColor = "#EEEEEE";
 
 
@@ -73,8 +73,9 @@ function create() {
 	game.physics.p2.enable(bullet, true);
 	bullet.body.dynamic = true;
 	bullet.anchor.setTo(0.5, 0.5);
-	bullet.body.damping = 0; //part of velocity lozed per second [0..1];
-	
+	bullet.body.damping = 0.01; //part of velocity lozed per second [0..1];
+	bullet.body.setCircle(7);
+	bullet.body.fixedRotation = false;
 	bullet.kill();
 }
 
@@ -118,14 +119,12 @@ function update() {
         bullet.body.rotation = player1.body.rotation;
 		bullet.body.x = player1.body.x + 93*Math.cos(bullet.body.rotation);
 		bullet.body.y = player1.body.y + 93*Math.sin(bullet.body.rotation);
-        bullet.body.moveRight(600*Math.cos(bullet.body.rotation));
-        bullet.body.moveDown(600*Math.sin(bullet.body.rotation));
-        setTimeout(function() {
+        bullet.body.moveRight(200*Math.cos(bullet.body.rotation));
+        bullet.body.moveDown(200*Math.sin(bullet.body.rotation));
 			bullet.revive();
-			setTimeout(function() {
+			setInterval(function() {
 				bullet.kill();
 			}, 10000);
-		}, 1000);
         //weapon.fire();
     }
     weapon.bullets.forEachAlive(function(bull){
