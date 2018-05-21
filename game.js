@@ -1,7 +1,119 @@
+'use strict'
+
+if (!Date.now) {
+  Date.now = function now() {
+    return new Date().getTime();
+  };
+}
+
+/**
+ * Returns a random number between min (inclusive) and max (exclusive)
+ */
+function random(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive)
+ * Using Math.round() will give you a non-uniform distribution!
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 var game = new Phaser.Game(1000, 600, Phaser.AUTO, "game-field", {preload:preload, create:create, update:update, render:render});
 
-function preload ()
-{
+function Weapon(num_bullets, bullet_speed, fire_rate, max_coll) {
+	this.bullets = [];
+	this.bullet_ind = 0;
+	this.num_bullets = num_bullets;
+	this.bullet_speed = bullet_speed;
+	this.fire_rate = fire_rate;
+	this.prev_fire = -1000;
+	this.bullets_in_row = 0;
+	this.max_coll = max_coll;
+	for(let i = 0; i < num_bullets; i++) {
+		let bullet = game.add.sprite(0, 0, 'bullet');
+		game.physics.p2.enable(bullet, false);
+		bullet.body.dynamic = true;
+		bullet.anchor.setTo(0.5, 0.5);
+		bullet.body.damping = 0; //part of velocity losed per second [0..1];
+		bullet.body.setCircle(7);
+		bullet.body.fixedRotation = false;
+		bullet.kill();
+		bullet.body.onBeginContact.add(this.bulletHit, this, 0, bullet);
+		bullet.countHit = 0;//еще не ударялась.
+		this.bullets.push(bullet);
+	}
+}
+
+Weapon.prototype.bulletHit = function(body, bodyB, shapeA, shapeB, equation, bullet) { // обработчик касания пули с объектом body
+	bullet.countHit += 1;
+	if(bullet.countHit > this.max_coll) {
+		bullet.kill();
+		return;
+	}
+	if (body) {//hit
+		dbg = "body:" + body.sprite.key + " bodyB: " + bodyB.sprite;
+
+	} else { //bullet hit the wall
+		dbg = "bullet hit the wall";
+	}
+
+}
+
+Weapon.prototype.fire = function() {
+	let ms = Date.now();
+	//console.log(ms, this.prev_fire);
+	if(ms - this.prev_fire >= this.fire_rate) {
+		if(this.prev_fire != -1000) {
+			this.bullets_in_row++;
+		}
+		else {
+			this.bullets_in_row = 0;
+		}
+
+		this.prev_fire = ms;
+
+		let bullet = this.bullets[this.bullet_ind];
+		let angle_variance = 0;
+		if(this.bullets_in_row <= 6) {
+	 		angle_variance = 0.05*this.bullets_in_row;
+		}
+		else {
+			angle_variance = 0.05*6;
+		}
+
+		bullet.countHit = 0;
+		bullet.body.rotation = player1.body.rotation;
+		bullet.body.x = player1.body.x + 93*Math.cos(bullet.body.rotation);
+		bullet.body.y = player1.body.y + 93*Math.sin(bullet.body.rotation);
+		bullet.body.moveRight(this.bullet_speed*(Math.cos(bullet.body.rotation) + random(-angle_variance, angle_variance)));
+		bullet.body.moveDown(this.bullet_speed*(Math.sin(bullet.body.rotation) + random(-angle_variance, angle_variance)));
+		bullet.revive();
+
+		this.bullet_ind++;
+		if(this.bullet_ind == this.num_bullets) {
+			this.bullet_ind = 0;
+		}
+	}
+};
+
+Weapon.prototype.null_fire = function() {
+	this.prev_fire = -1000;
+};
+
+Weapon.prototype.update = function() {
+	for(let i = 0; i < this.num_bullets; i++) {
+		bullet = this.bullets[i];
+		if(bullet.alive) {
+			bullet.body.rotation = Math.atan2(bullet.body.velocity.y, bullet.body.velocity.x);
+			//console.log(bullet.body.rotation);
+		}
+	}
+};
+
+function preload () {
 	game.load.spritesheet('image', 'chelik.png', 174, 100);
 	game.load.image('box', 'box0.png');
 	game.load.image('bullet', 'sprites/bullet.png');
@@ -36,24 +148,7 @@ function create() {
 	player1.anchor.setTo(0.45, 0.54);
 	player1.body.setCircle(65);
 
-
-	// https://phaser.io/examples/v2/weapon/bullet-angle-variance
-	//  Creates 30 bullets, using the 'bullet' graphic
-	weapon = game.add.weapon(30, 'bullet');
-    //  The bullet will be automatically killed when it leaves the world bounds
-    weapon.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-    //  Because our bullet is drawn facing up, we need to offset its rotation:
-    //weapon.bulletAngleOffset = -90;
-    //  The speed at which the bullet is fired
-    weapon.bulletSpeed = 800;
-    //  Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
-    weapon.fireRate = 60;
-    //  Add a variance to the bullet angle by +- this value
-    weapon.bulletAngleVariance = 5;
-	weapon.trackSprite(player1, 103, 0, true);
-	//weapon.bulletCollideWorldBounds = true;
-	//weapon.bulletEnableBody = true;
-
+	weapon = new Weapon(30, 800, 60, 3);
 
 	cursors = game.input.keyboard.createCursorKeys();
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
@@ -71,34 +166,6 @@ function create() {
 	b1.anchor.setTo(0.5, 0.5);
 	b1.body.kinematic = true;
 	b1.body.rotation = 1.8243;//случайное, вообще-то число
-	
-	/*создание одной пули*/
-	bullet = game.add.sprite(0, 0, 'bullet');
-	game.physics.p2.enable(bullet, false);
-	bullet.body.dynamic = true;
-	bullet.anchor.setTo(0.5, 0.5);
-	bullet.body.damping = 0.01; //part of velocity losed per second [0..1];
-	bullet.body.setCircle(7);
-	bullet.body.fixedRotation = false;
-	bullet.kill();
-	bullet.body.onBeginContact.add(bulletHit, this, 0, bullet);
-	bullet.countHit = 0;//еще не ударялась.
-	/*конец создания одной пули */
-}
-
-function bulletHit(body, bodyB, shapeA, shapeB, equation, bull) { // обработчик касания пули с объектом body
-	bullet.countHit += 1;
-	if(bullet.countHit > bullet_live) {
-		bullet.kill();
-		return;
-	}
-	if (body) {//hit
-		dbg = "body:" + body.sprite.key + " bodyB: " + bodyB.sprite;
-		
-	} else { //bullet hit the wall
-		dbg = "bullet hit the wall";
-	}
-	
 }
 
 function update() {
@@ -141,26 +208,14 @@ function update() {
 	}
 	*/
     player1.body.rotation = game.physics.arcade.angleToPointer(player1);
-    
-	/*update для одной пули. Вроде бы нужно вызывать для каждой*/
-	if (bullet.alive) {
-		bullet.body.rotation = Math.atan2(bullet.body.velocity.y, bullet.body.velocity.x);
-	}
-	/*конец update для одной пули*/
-	
-	//weapon.fireAngle = Phaser.Math.radToDeg(game.physics.arcade.angleToPointer(player1));
-	/*выстрел одной пули*/
+
+	weapon.update();
     if(game.input.activePointer.leftButton.isDown) {
-		bullet.countHit = 0;
-        bullet.body.rotation = player1.body.rotation;
-		bullet.body.x = player1.body.x + 93*Math.cos(bullet.body.rotation);
-		bullet.body.y = player1.body.y + 93*Math.sin(bullet.body.rotation);
-        bullet.body.moveRight(200*Math.cos(bullet.body.rotation));
-        bullet.body.moveDown(200*Math.sin(bullet.body.rotation));
-		bullet.revive();
-        //weapon.fire();
+        weapon.fire();
     }
-    /*конец выстрела пули*/
+	else {
+		weapon.null_fire();
+	}
 }
 
 function render() {
