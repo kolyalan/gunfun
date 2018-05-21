@@ -10,12 +10,14 @@ function preload ()
 var PI = 3.1414926535;
 var sq2 = Math.sqrt(2);
 var vel = 300;
+var bullet_live = 5;
 var player1;
 var cursors;
 var boxes;
 var b0, b1;
 var weapon, fire_button;
 var bullet;
+var dbg = "Nothing happened";
 
 function create() {
 	game.time.advancedTiming = true;
@@ -69,14 +71,34 @@ function create() {
 	b1.anchor.setTo(0.5, 0.5);
 	b1.body.kinematic = true;
 	b1.body.rotation = 1.8243;//случайное, вообще-то число
+	
+	/*создание одной пули*/
 	bullet = game.add.sprite(0, 0, 'bullet');
-	game.physics.p2.enable(bullet, true);
+	game.physics.p2.enable(bullet, false);
 	bullet.body.dynamic = true;
 	bullet.anchor.setTo(0.5, 0.5);
-	bullet.body.damping = 0.01; //part of velocity lozed per second [0..1];
+	bullet.body.damping = 0.01; //part of velocity losed per second [0..1];
 	bullet.body.setCircle(7);
 	bullet.body.fixedRotation = false;
 	bullet.kill();
+	bullet.body.onBeginContact.add(bulletHit, this, 0, bullet);
+	bullet.countHit = 0;//еще не ударялась.
+	/*конец создания одной пули */
+}
+
+function bulletHit(body, bodyB, shapeA, shapeB, equation, bull) { // обработчик касания пули с объектом body
+	bullet.countHit += 1;
+	if(bullet.countHit > bullet_live) {
+		bullet.kill();
+		return;
+	}
+	if (body) {//hit
+		dbg = "body:" + body.sprite.key + " bodyB: " + bodyB.sprite;
+		
+	} else { //bullet hit the wall
+		dbg = "bullet hit the wall";
+	}
+	
 }
 
 function update() {
@@ -113,30 +135,36 @@ function update() {
 		player1.animations.stop();
         player1.frame = 1;
 	}
+	/*костыль для дебага
+	if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
+		bullet.kill();
+	}
+	*/
     player1.body.rotation = game.physics.arcade.angleToPointer(player1);
-	weapon.fireAngle = Phaser.Math.radToDeg(game.physics.arcade.angleToPointer(player1));
+    
+	/*update для одной пули. Вроде бы нужно вызывать для каждой*/
+	if (bullet.alive) {
+		bullet.body.rotation = Math.atan2(bullet.body.velocity.y, bullet.body.velocity.x);
+	}
+	/*конец update для одной пули*/
+	
+	//weapon.fireAngle = Phaser.Math.radToDeg(game.physics.arcade.angleToPointer(player1));
+	/*выстрел одной пули*/
     if(game.input.activePointer.leftButton.isDown) {
+		bullet.countHit = 0;
         bullet.body.rotation = player1.body.rotation;
 		bullet.body.x = player1.body.x + 93*Math.cos(bullet.body.rotation);
 		bullet.body.y = player1.body.y + 93*Math.sin(bullet.body.rotation);
         bullet.body.moveRight(200*Math.cos(bullet.body.rotation));
         bullet.body.moveDown(200*Math.sin(bullet.body.rotation));
-			bullet.revive();
-			setInterval(function() {
-				bullet.kill();
-			}, 10000);
+		bullet.revive();
         //weapon.fire();
     }
-    weapon.bullets.forEachAlive(function(bull){
-		//тут вроде должны быть отражения и подобное.
-	});
-}
-
-function collisionHandler() {
-	
+    /*конец выстрела пули*/
 }
 
 function render() {
+	game.debug.text(dbg, 32, 32);
 	game.debug.text(game.time.fps, 2, 14, "#00ff00");
 	game.debug.body(player1);
 }
