@@ -145,6 +145,11 @@ function Player(sprite_name, weapon_settings, follow_camera) {
 	this.weapon = new Weapon(this.player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, reloading_time);
 }
 
+Player.prototype.setXY = function(x, y) {
+    this.player_sprite.body.moveDown(x);
+    this.player_sprite.body.moveRight(y);
+}
+
 Player.prototype.update = function() {
     this.player_sprite.body.setZeroVelocity();
 	var vx = 0, vy = 0;
@@ -224,7 +229,7 @@ function preload () {
 var PI = 3.1414926535;
 var sq2 = Math.sqrt(2);
 var vel = 300;
-var player1;
+var player1, player2;
 var cursors;
 var boxes;
 var b0, b1;
@@ -246,6 +251,16 @@ function create() {
         max_coll: 3,
         reloading_time: 2000
     }, true);
+
+    /*player2 = new Player('player1_sprite', {
+        num_bullets: 30,
+        bullet_speed: 800,
+        fire_rate: 60,
+        max_coll: 3,
+        reloading_time: 2000
+    }, true);*/
+
+    //player2.setXY(100, 200);
 
 	cursors = game.input.keyboard.createCursorKeys();
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
