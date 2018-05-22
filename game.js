@@ -21,6 +21,7 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+
 var game = new Phaser.Game(1000, 600, Phaser.AUTO, "game-field", {preload:preload, create:create, update:update, render:render});
 
 function Weapon(num_bullets, bullet_speed, fire_rate, max_coll) {
@@ -54,7 +55,7 @@ Weapon.prototype.bulletHit = function(body, bodyB, shapeA, shapeB, equation, bul
 		return;
 	}
 	if (body) {//hit
-		dbg = "body:" + body.sprite.key + " bodyB: " + bodyB.sprite;
+		dbg = "body:" + body.id + " bodyB: " + bodyB.sprite;
 
 	} else { //bullet hit the wall
 		dbg = "bullet hit the wall";
@@ -116,6 +117,7 @@ Weapon.prototype.update = function() {
 function preload () {
 	game.load.spritesheet('image', 'chelik.png', 174, 100);
 	game.load.image('box', 'box0.png');
+	game.load.image('triangle', 'triangle.png');
 	game.load.image('bullet', 'sprites/bullet.png');
 }
 
@@ -139,8 +141,8 @@ function create() {
 	game.stage.backgroundColor = "#EEEEEE";
 
 
-	player1 = game.add.sprite(0, 0, 'image');
-	game.physics.p2.enable(player1, true);//true - debug
+	player1 = game.add.sprite(65, 65, 'image');
+	game.physics.p2.enable(player1, false);//true - debug
 	player1.frame = 1;
 	player1.animations.add('go', [1, 0, 1, 2], 7, true);
 	player1.enableBody = true;
@@ -157,15 +159,74 @@ function create() {
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.D ]);
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.W ]);
 
+	generateField(16, 2, 165);
+}
+
+function generateField(nb, nt, offset) {	//nb и nt - четные.
 	boxes = game.add.physicsGroup(Phaser.Physics.P2JS);
-	var b0 = boxes.create(400, 200, 'box');//случайные координаты где-то в середине.
-	b0.anchor.setTo(0.5, 0.5);
-	b0.body.kinematic = true;
-	b0.body.rotation = 0.8243;//случайное, вообще-то число
-	var b1 = boxes.create(500, 400, 'box');//случайные координаты где-то в середине.
-	b1.anchor.setTo(0.5, 0.5);
-	b1.body.kinematic = true;
-	b1.body.rotation = 1.8243;//случайное, вообще-то число
+	for (let i = 0; i < nb/2; i++) {
+		var x, y, good;
+		good = 0;
+		while(!good) {
+			x = getRandomInt(offset, game.width/2-30);
+			y = getRandomInt(offset, game.height-offset);
+			good = 1;
+			boxes.forEach(function(box, x, y) {
+				if (Math.hypot(x-box.x, y-box.y)< 90) {
+					good = 0;
+				}
+			}, this, true, x, y);
+			if (good) break;
+		}
+		var angle = getRandomInt(0, PI);
+		var width = 30 + random(-15, 10);
+		var height = 70 + random(-30, 10);
+		var box = boxes.create(x, y, 'box');
+		box.width = width;
+		box.height = height;
+		box.body.kinematic = true;
+		//box.body.debug = true;
+		box.body.setRectangleFromSprite();
+		box.body.rotation = angle;
+		box = boxes.create(game.width - x, game.height-y, 'box');
+		box.width = width;
+		box.height = height;
+		box.body.kinematic = true;
+		//box.body.debug = true;
+		box.body.setRectangleFromSprite();
+		box.body.rotation = angle;
+	}/*
+	for (let i = 0; i < nt/2; i++) {
+		var x, y, good;
+		good = 0;
+		while(!good) {
+			x = getRandomInt(offset, game.width/2-30);
+			y = getRandomInt(offset, game.height-offset);
+			good = 1;
+			boxes.forEach(function(box, x, y) {
+				if (Math.hypot(x-box.x, y-box.y)< 90) {
+					good = 0;
+				}
+			}, this, true, x, y);
+			if (good) break;
+		}
+		var angle = getRandomInt(0, PI);
+		var width = 70 + random(-15, 10);
+		var height = 70 + random(-30, 10);
+		var box = boxes.create(x, y, 'triangle');
+		box.body.debug = true;
+		box.body.kinematic = true;
+		box.body.clearShapes();
+		box.body.addPolygon([], [[0, 70], [70, 70], [35, 10]]);
+		box.anchor.setTo(0.5, 0.7);
+		box.body.rotation = angle;
+		box = boxes.create(game.width - x, game.height-y, 'triangle');
+		box.body.debug = true;
+		box.body.kinematic = true;
+		box.body.addPolygon([], [[0, 70], [70, 70], [35, 10]]);
+		box.anchor.setTo(0.5, 0.7);
+		box.body.rotation = PI +angle;
+	}*/
 }
 
 function update() {
