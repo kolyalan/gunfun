@@ -114,7 +114,7 @@ Weapon.prototype.null_fire = function() {
 
 Weapon.prototype.update = function() {
 	for(let i = 0; i < this.num_bullets; i++) {
-		bullet = this.bullets[i];
+		let bullet = this.bullets[i];
 		if(bullet.alive) {
 			bullet.body.rotation = Math.atan2(bullet.body.velocity.y, bullet.body.velocity.x);
 			//console.log(bullet.body.rotation);
@@ -131,6 +131,9 @@ function Player(sprite_name, weapon_settings) {
 	this.player_sprite.body.collideWorldBounds = true;
 	this.player_sprite.anchor.setTo(0.45, 0.54);
 	this.player_sprite.body.setCircle(65);
+
+    this.weapon_hud = game.add.graphics(0, 0);
+    this.weapon_hud.fixedToCamera = true;
 
     let {num_bullets, bullet_speed, fire_rate, max_coll, reloading_time} = weapon_settings;
 	this.weapon = new Weapon(this.player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, reloading_time);
@@ -171,7 +174,7 @@ Player.prototype.update = function() {
 		this.player_sprite.body.moveDown(vy*vel);
 		this.player_sprite.body.moveRight(vx*vel);
 	}
-    if(this.player_sprite.body.velocity.x == 0 && this.player_sprite.body.velocity.y == 0) {
+    if((this.player_sprite.body.velocity.x == 0) && (this.player_sprite.body.velocity.y == 0)) {
 		this.player_sprite.animations.stop();
         this.player_sprite.frame = 1;
 	}
@@ -188,8 +191,21 @@ Player.prototype.update = function() {
 }
 
 Player.prototype.render = function() {
-    if(this.weapon.needs_reload) {
-        game.debug.text("Need reload!", 32, 100);
+    this.weapon_hud.clear();
+    this.weapon_hud.lineStyle(2, 0xff0000, 0.5);
+    if(this.weapon.reloading) {
+        game.debug.text("Reloading...", 32, 65);
+    }
+    else if(this.weapon.needs_reload) {
+        game.debug.text("EMPTY!", 32, 65);
+    }
+    else {
+    //console.log(this.weapon.num_bullets, this.weapon.bullet_ind);
+        game.debug.text(this.weapon.num_bullets - this.weapon.bullet_ind, 20, 65);
+        for(let i = 0; i < this.weapon.num_bullets - this.weapon.bullet_ind; i++) {
+            this.weapon_hud.moveTo(50 + 5*i, 50);
+            this.weapon_hud.lineTo(50 + 5*i, 70);
+        }
     }
 }
 
@@ -202,13 +218,11 @@ function preload () {
 var PI = 3.1414926535;
 var sq2 = Math.sqrt(2);
 var vel = 300;
-var bullet_live = 5;
 var player1;
 var cursors;
 var boxes;
 var b0, b1;
 var weapon, fire_button;
-var bullet;
 var dbg = "Nothing happened";
 
 function create() {
@@ -218,7 +232,6 @@ function create() {
 	game.physics.p2.restitution = 0.8;
 	game.stage.backgroundColor = "#EEEEEE";
 
-    // 30, 800, 60, 3, 2000
 	player1 = new Player('player1_sprite', {
         num_bullets: 30,
         bullet_speed: 800,
