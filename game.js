@@ -59,8 +59,12 @@ Weapon.prototype.bulletHit = function(body, bodyB, shapeA, shapeB, equation, bul
 		return;
 	}
 	if (body) {//hit
-		dbg = "body:" + body.sprite.key + " bodyB: " + bodyB.sprite;
-
+		if (body.isPlayer!=undefined) {
+			dbg = "hit player";
+			body.sprite.damage(5);
+		} else {
+			dbg = "body:" + body.sprite.key + " bodyB: " + bodyB.sprite;
+		}
 	} else { //bullet hit the wall
 		dbg = "bullet hit the wall";
 	}
@@ -132,6 +136,8 @@ function Player(sprite_name, weapon_settings, follow_camera) {
 	this.player_sprite.body.collideWorldBounds = true;
 	this.player_sprite.anchor.setTo(0.45, 0.54);
 	this.player_sprite.body.setCircle(65);
+	this.player_sprite.body.isPlayer = 1;
+	this.player_sprite.setHealth(100);
 
     if(follow_camera) {
         game.camera.follow(this.player_sprite);
