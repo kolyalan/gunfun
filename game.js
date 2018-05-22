@@ -44,7 +44,7 @@ function Weapon(player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, r
 		bullet.body.damping = 0; //part of velocity losed per second [0..1];
 		bullet.body.setCircle(7);
 		bullet.body.fixedRotation = false;
-        bullet.body.collideWorldBounds = false;
+        bullet.body.collideWorldBounds = true;
 		bullet.kill();
 		bullet.body.onBeginContact.add(this.bulletHit, this, 0, bullet);
 		bullet.countHit = 0;//еще не ударялась.
@@ -129,7 +129,7 @@ function Player(sprite_name, weapon_settings, follow_camera) {
 	this.player_sprite.frame = 1;
 	this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
 	this.player_sprite.enableBody = true;
-	this.player_sprite.body.collideWorldBounds = false;
+	this.player_sprite.body.collideWorldBounds = true;
 	this.player_sprite.anchor.setTo(0.45, 0.54);
 	this.player_sprite.body.setCircle(65);
 
@@ -236,6 +236,73 @@ var b0, b1;
 var weapon, fire_button;
 var dbg = "Nothing happened";
 
+function generate_field(nb, nt, offset) {	//nb и nt - четные.
+    boxes = game.add.physicsGroup(Phaser.Physics.P2JS);
+    for (let i = 0; i < nb; i++) {
+        var x, y, good;
+        good = 0;
+        while(!good) {
+            x = getRandomInt(offset, game.world.width/2-30);
+            y = getRandomInt(offset, game.world.height-offset);
+            good = 1;
+            boxes.forEach(function(box, x, y) {
+                if (Math.hypot(x-box.x, y-box.y)< 90) {
+                    good = 0;
+                }
+            }, this, true, x, y);
+            if (good) break;
+        }
+        var angle = getRandomInt(0, PI);
+        var width = 30 + random(0, 100);
+        var height = 30 + random(0, 100);
+        var box = boxes.create(x, y, 'box');
+        box.width = width;
+        box.height = height;
+        box.body.kinematic = true;
+        //box.body.debug = true;
+        box.body.setRectangleFromSprite();
+        box.body.rotation = angle;
+        box = boxes.create(game.world.width - x, game.world.height-y, 'box');
+        box.width = width;
+        box.height = height;
+        box.body.kinematic = true;
+        //box.body.debug = true;
+        box.body.setRectangleFromSprite();
+        box.body.rotation = angle;
+    }/*
+    for (let i = 0; i < nt/2; i++) {
+        var x, y, good;
+        good = 0;
+        while(!good) {
+            x = getRandomInt(offset, game.width/2-30);
+            y = getRandomInt(offset, game.height-offset);
+            good = 1;
+            boxes.forEach(function(box, x, y) {
+                if (Math.hypot(x-box.x, y-box.y)< 90) {
+                    good = 0;
+                }
+            }, this, true, x, y);
+            if (good) break;
+        }
+        var angle = getRandomInt(0, PI);
+        var width = 70 + random(-15, 10);
+        var height = 70 + random(-30, 10);
+        var box = boxes.create(x, y, 'triangle');
+        box.body.debug = true;
+        box.body.kinematic = true;
+        box.body.clearShapes();
+        box.body.addPolygon([], [[0, 70], [70, 70], [35, 10]]);
+        box.anchor.setTo(0.5, 0.7);
+        box.body.rotation = angle;
+        box = boxes.create(game.width - x, game.height-y, 'triangle');
+        box.body.debug = true;
+        box.body.kinematic = true;
+        box.body.addPolygon([], [[0, 70], [70, 70], [35, 10]]);
+        box.anchor.setTo(0.5, 0.7);
+        box.body.rotation = PI +angle;
+    }*/
+}
+
 function create() {
 	game.time.advancedTiming = true;
 	game.input.mouse.capture = true;
@@ -270,7 +337,7 @@ function create() {
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.W ]);
     game.input.keyboard.addKeyCapture([ Phaser.Keyboard.R ]);
 
-	boxes = game.add.physicsGroup(Phaser.Physics.P2JS);
+	/*boxes = game.add.physicsGroup(Phaser.Physics.P2JS);
 	var b0 = boxes.create(400, 200, 'box');//случайные координаты где-то в середине.
 	b0.anchor.setTo(0.5, 0.5);
 	b0.body.kinematic = true;
@@ -278,7 +345,8 @@ function create() {
 	var b1 = boxes.create(500, 400, 'box');//случайные координаты где-то в середине.
 	b1.anchor.setTo(0.5, 0.5);
 	b1.body.kinematic = true;
-	b1.body.rotation = 1.8243;//случайное, вообще-то число
+	b1.body.rotation = 1.8243;//случайное, вообще-то число*/
+    generate_field(16, 2, 165);
 }
 
 function update() {
