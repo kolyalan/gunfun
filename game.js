@@ -23,7 +23,7 @@ function getRandomInt(min, max) {
 
 var game = new Phaser.Game(1000, 600, Phaser.AUTO, "game-field", {preload:preload, create:create, update:update, render:render});
 
-function Weapon(num_bullets, bullet_speed, fire_rate, max_coll) {
+function Weapon(num_bullets, bullet_speed, fire_rate, max_coll, reloading_time) {
 	this.bullets = [];
 	this.bullet_ind = 0;
 	this.num_bullets = num_bullets;
@@ -32,6 +32,9 @@ function Weapon(num_bullets, bullet_speed, fire_rate, max_coll) {
 	this.prev_fire = -1000;
 	this.bullets_in_row = 0;
 	this.max_coll = max_coll;
+    this.needs_reload = false;
+    this.reloading_time = reloading_time;
+    this.reloading = false;
 	for(let i = 0; i < num_bullets; i++) {
 		let bullet = game.add.sprite(0, 0, 'bullet');
 		game.physics.p2.enable(bullet, false);
@@ -63,6 +66,9 @@ Weapon.prototype.bulletHit = function(body, bodyB, shapeA, shapeB, equation, bul
 }
 
 Weapon.prototype.fire = function() {
+    if(this.needs_reload) {
+        return;
+    }
 	let ms = Date.now();
 	//console.log(ms, this.prev_fire);
 	if(ms - this.prev_fire >= this.fire_rate) {
@@ -95,6 +101,8 @@ Weapon.prototype.fire = function() {
 		this.bullet_ind++;
 		if(this.bullet_ind == this.num_bullets) {
 			this.bullet_ind = 0;
+            this.needs_reload = true;
+            console.log('Yes!');
 		}
 	}
 };
@@ -148,7 +156,7 @@ function create() {
 	player1.anchor.setTo(0.45, 0.54);
 	player1.body.setCircle(65);
 
-	weapon = new Weapon(30, 800, 60, 3);
+	weapon = new Weapon(30, 800, 60, 3, 2000);
 
 	cursors = game.input.keyboard.createCursorKeys();
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
@@ -156,6 +164,7 @@ function create() {
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.S ]);
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.D ]);
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.W ]);
+    game.input.keyboard.addKeyCapture([ Phaser.Keyboard.R ]);
 
 	boxes = game.add.physicsGroup(Phaser.Physics.P2JS);
 	var b0 = boxes.create(400, 200, 'box');//случайные координаты где-то в середине.
@@ -171,6 +180,15 @@ function create() {
 function update() {
 	player1.body.setZeroVelocity();
 	var vx = 0, vy = 0;
+    if(weapon.reloading && (Date.now() - weapon.reloading_start >= weapon.reloading_time)) {
+        weapon.reloading = false;
+        weapon.needs_reload = false;
+    }
+    if(game.input.keyboard.isDown(Phaser.Keyboard.R) && !weapon.reloading) {
+        weapon.reloading = true;
+        weapon.reloading_start = Date.now();
+        console.log('Reloading!', weapon.reloading_start)
+    }
 	if (cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A))
     {
 		player1.animations.play('go');
@@ -220,6 +238,9 @@ function update() {
 
 function render() {
 	game.debug.text(dbg, 32, 32);
+    if(weapon.needs_reload) {
+        game.debug.text("Need reload!", 32, 100);
+    }
 	game.debug.text(game.time.fps, 2, 14, "#00ff00");
 	game.debug.body(player1);
 }
