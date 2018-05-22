@@ -23,7 +23,8 @@ function getRandomInt(min, max) {
 
 var game = new Phaser.Game(1000, 600, Phaser.AUTO, "game-field", {preload:preload, create:create, update:update, render:render});
 
-function Weapon(num_bullets, bullet_speed, fire_rate, max_coll, reloading_time) {
+function Weapon(player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, reloading_time) {
+    this.player_sprite = player_sprite;
 	this.bullets = [];
 	this.bullet_ind = 0;
 	this.num_bullets = num_bullets;
@@ -91,9 +92,9 @@ Weapon.prototype.fire = function() {
 		}
 
 		bullet.countHit = 0;
-		bullet.body.rotation = player1.body.rotation;
-		bullet.body.x = player1.body.x + 93*Math.cos(bullet.body.rotation);
-		bullet.body.y = player1.body.y + 93*Math.sin(bullet.body.rotation);
+		bullet.body.rotation = this.player_sprite.body.rotation;
+		bullet.body.x = this.player_sprite.body.x + 93*Math.cos(bullet.body.rotation);
+		bullet.body.y = this.player_sprite.body.y + 93*Math.sin(bullet.body.rotation);
 		bullet.body.moveRight(this.bullet_speed*(Math.cos(bullet.body.rotation) + random(-angle_variance, angle_variance)));
 		bullet.body.moveDown(this.bullet_speed*(Math.sin(bullet.body.rotation) + random(-angle_variance, angle_variance)));
 		bullet.revive();
@@ -121,8 +122,79 @@ Weapon.prototype.update = function() {
 	}
 };
 
+function Player(sprite_name, weapon_settings) {
+    this.player_sprite = game.add.sprite(0, 0, sprite_name);
+	game.physics.p2.enable(this.player_sprite, true);//true - debug
+	this.player_sprite.frame = 1;
+	this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
+	this.player_sprite.enableBody = true;
+	this.player_sprite.body.collideWorldBounds = true;
+	this.player_sprite.anchor.setTo(0.45, 0.54);
+	this.player_sprite.body.setCircle(65);
+
+    let {num_bullets, bullet_speed, fire_rate, max_coll, reloading_time} = weapon_settings;
+	this.weapon = new Weapon(this.player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, reloading_time);
+}
+
+Player.prototype.update = function() {
+    this.player_sprite.body.setZeroVelocity();
+	var vx = 0, vy = 0;
+    if(this.weapon.reloading && (Date.now() - this.weapon.reloading_start >= this.weapon.reloading_time)) {
+        this.weapon.reloading = false;
+        this.weapon.needs_reload = false;
+    }
+    if(game.input.keyboard.isDown(Phaser.Keyboard.R) && !this.weapon.reloading) {
+        this.weapon.reloading = true;
+        this.weapon.reloading_start = Date.now();
+        console.log('Reloading!', this.weapon.reloading_start)
+    }
+	if (cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A)) {
+		this.player_sprite.animations.play('go');
+        vx = -1;
+    }
+    else if (cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D)) {
+		this.player_sprite.animations.play('go');
+        vx = 1;
+    }
+    if (cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.W)) {
+		this.player_sprite.animations.play('go');
+		vy = -1;
+    }
+    else if (cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S)) {
+		this.player_sprite.animations.play('go');
+		vy = 1;
+    }
+    if (vx != 0 && vy != 0) {
+		this.player_sprite.body.moveDown(vy*vel/sq2);
+		this.player_sprite.body.moveRight(vx*vel/sq2);
+	} else {
+		this.player_sprite.body.moveDown(vy*vel);
+		this.player_sprite.body.moveRight(vx*vel);
+	}
+    if(this.player_sprite.body.velocity.x == 0 && this.player_sprite.body.velocity.y == 0) {
+		this.player_sprite.animations.stop();
+        this.player_sprite.frame = 1;
+	}
+
+    this.player_sprite.body.rotation = game.physics.arcade.angleToPointer(this.player_sprite);
+
+	this.weapon.update();
+    if(game.input.activePointer.leftButton.isDown) {
+        this.weapon.fire();
+    }
+	else {
+		this.weapon.null_fire();
+	}
+}
+
+Player.prototype.render = function() {
+    if(this.weapon.needs_reload) {
+        game.debug.text("Need reload!", 32, 100);
+    }
+}
+
 function preload () {
-	game.load.spritesheet('image', 'chelik.png', 174, 100);
+	game.load.spritesheet('player1_sprite', 'chelik.png', 174, 100);
 	game.load.image('box', 'box0.png');
 	game.load.image('bullet', 'sprites/bullet.png');
 }
@@ -146,17 +218,14 @@ function create() {
 	game.physics.p2.restitution = 0.8;
 	game.stage.backgroundColor = "#EEEEEE";
 
-
-	player1 = game.add.sprite(0, 0, 'image');
-	game.physics.p2.enable(player1, true);//true - debug
-	player1.frame = 1;
-	player1.animations.add('go', [1, 0, 1, 2], 7, true);
-	player1.enableBody = true;
-	player1.body.collideWorldBounds = true;
-	player1.anchor.setTo(0.45, 0.54);
-	player1.body.setCircle(65);
-
-	weapon = new Weapon(30, 800, 60, 3, 2000);
+    // 30, 800, 60, 3, 2000
+	player1 = new Player('player1_sprite', {
+        num_bullets: 30,
+        bullet_speed: 800,
+        fire_rate: 60,
+        max_coll: 3,
+        reloading_time: 2000
+    });
 
 	cursors = game.input.keyboard.createCursorKeys();
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
@@ -178,69 +247,12 @@ function create() {
 }
 
 function update() {
-	player1.body.setZeroVelocity();
-	var vx = 0, vy = 0;
-    if(weapon.reloading && (Date.now() - weapon.reloading_start >= weapon.reloading_time)) {
-        weapon.reloading = false;
-        weapon.needs_reload = false;
-    }
-    if(game.input.keyboard.isDown(Phaser.Keyboard.R) && !weapon.reloading) {
-        weapon.reloading = true;
-        weapon.reloading_start = Date.now();
-        console.log('Reloading!', weapon.reloading_start)
-    }
-	if (cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A))
-    {
-		player1.animations.play('go');
-        vx = -1;
-    }
-    else if (cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D))
-    {
-		player1.animations.play('go');
-        vx = 1;
-    }
-    if (cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.W))
-    {
-		player1.animations.play('go');
-		vy = -1;
-    }
-    else if (cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S))
-    {
-		player1.animations.play('go');
-		vy = 1;
-    }
-    if (vx != 0 && vy != 0) {
-		player1.body.moveDown(vy*vel/sq2);
-		player1.body.moveRight(vx*vel/sq2);
-	} else {
-		player1.body.moveDown(vy*vel);
-		player1.body.moveRight(vx*vel);
-	}
-    if(player1.body.velocity.x == 0 && player1.body.velocity.y == 0) {
-		player1.animations.stop();
-        player1.frame = 1;
-	}
-	/*костыль для дебага
-	if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
-		bullet.kill();
-	}
-	*/
-    player1.body.rotation = game.physics.arcade.angleToPointer(player1);
-
-	weapon.update();
-    if(game.input.activePointer.leftButton.isDown) {
-        weapon.fire();
-    }
-	else {
-		weapon.null_fire();
-	}
+	player1.update();
 }
 
 function render() {
+    player1.render();
 	game.debug.text(dbg, 32, 32);
-    if(weapon.needs_reload) {
-        game.debug.text("Need reload!", 32, 100);
-    }
 	game.debug.text(game.time.fps, 2, 14, "#00ff00");
-	game.debug.body(player1);
+	game.debug.body(player1.player_sprite);
 }
