@@ -44,6 +44,7 @@ function Weapon(player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, r
 		bullet.body.damping = 0; //part of velocity losed per second [0..1];
 		bullet.body.setCircle(7);
 		bullet.body.fixedRotation = false;
+        bullet.body.collideWorldBounds = false;
 		bullet.kill();
 		bullet.body.onBeginContact.add(this.bulletHit, this, 0, bullet);
 		bullet.countHit = 0;//еще не ударялась.
@@ -122,18 +123,23 @@ Weapon.prototype.update = function() {
 	}
 };
 
-function Player(sprite_name, weapon_settings) {
+function Player(sprite_name, weapon_settings, follow_camera) {
     this.player_sprite = game.add.sprite(0, 0, sprite_name);
 	game.physics.p2.enable(this.player_sprite, true);//true - debug
 	this.player_sprite.frame = 1;
 	this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
 	this.player_sprite.enableBody = true;
-	this.player_sprite.body.collideWorldBounds = true;
+	this.player_sprite.body.collideWorldBounds = false;
 	this.player_sprite.anchor.setTo(0.45, 0.54);
 	this.player_sprite.body.setCircle(65);
 
+    if(follow_camera) {
+        game.camera.follow(this.player_sprite);
+    }
+
     this.weapon_hud = game.add.graphics(0, 0);
     this.weapon_hud.fixedToCamera = true;
+
 
     let {num_bullets, bullet_speed, fire_rate, max_coll, reloading_time} = weapon_settings;
 	this.weapon = new Weapon(this.player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, reloading_time);
@@ -231,6 +237,7 @@ function create() {
 	game.physics.startSystem(Phaser.Physics.P2JS);
 	game.physics.p2.restitution = 0.8;
 	game.stage.backgroundColor = "#EEEEEE";
+    game.world.setBounds(0, 0, 1920, 1920);
 
 	player1 = new Player('player1_sprite', {
         num_bullets: 30,
@@ -238,7 +245,7 @@ function create() {
         fire_rate: 60,
         max_coll: 3,
         reloading_time: 2000
-    });
+    }, true);
 
 	cursors = game.input.keyboard.createCursorKeys();
 	game.input.keyboard.addKeyCapture([ Phaser.Keyboard.SPACEBAR ]);
