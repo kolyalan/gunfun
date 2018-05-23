@@ -164,7 +164,7 @@ function Player(sprite_name, weapon_settings, follow_camera, enable_hud, positio
 	this.player_sprite.setHealth(100);
     this.player_sprite.name = 'player';
     this.player_sprite.body.mass = 10;
-    //this.player_sprite.events.onKilled = killedHook(this);
+    this.player_sprite.events.onKilled.add(killedPHook, this);
 
     if(follow_camera) {
         game.camera.follow(this.player_sprite);
@@ -257,8 +257,8 @@ Player.prototype.render = function() {
     }
 }
 
-function killedHook(player) {
-    
+function killedPHook(player) {
+    var text = new Phaser.Text(game, game.camera.x + 100, game.camera.y + 100, "You are killed");
 }
 
 var __point = new Phaser.Point(0, 0);
