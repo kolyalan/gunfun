@@ -95,7 +95,16 @@ Weapon.prototype.fire = function() {
 		else {
 			angle_variance = 0.05*6;
 		}
-
+		
+		this.player_sprite.animations.stop();
+		if (this.player_sprite.frame == 0) {
+			this.player_sprite.animations.play('fire0');
+		} else if (this.player_sprite.frame == 1) {
+			this.player_sprite.animations.play('fire1');
+		} else if (this.player_sprite.frame == 2) {
+			this.player_sprite.animations.play('fire2');
+		}
+		
 		bullet.countHit = 0;
 		bullet.body.rotation = this.player_sprite.body.rotation;
 		bullet.body.x = this.player_sprite.body.x + 93*Math.cos(bullet.body.rotation);
@@ -132,6 +141,9 @@ function Player(sprite_name, weapon_settings, follow_camera) {
 	game.physics.p2.enable(this.player_sprite, true);//true - debug
 	this.player_sprite.frame = 1;
 	this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
+	this.player_sprite.animations.add('fire0', [3, 0], 10, false);
+	this.player_sprite.animations.add('fire1', [4, 1], 10, false);
+	this.player_sprite.animations.add('fire2', [5, 2], 10, false);
 	this.player_sprite.enableBody = true;
 	this.player_sprite.body.collideWorldBounds = true;
 	this.player_sprite.anchor.setTo(0.45, 0.54);
@@ -227,7 +239,7 @@ Player.prototype.render = function() {
 }
 
 function preload () {
-	game.load.spritesheet('player1_sprite', 'chelik.png', 174, 100);
+	game.load.spritesheet('player1_sprite', 'chelik_vertikalny.png', 174, 100);
 	game.load.image('box', 'box0.png');
 	game.load.image('bullet', 'sprites/bullet.png');
 }
