@@ -150,6 +150,7 @@ function Player(sprite_name, weapon_settings, follow_camera) {
 	this.player_sprite.body.setCircle(65);
 	this.player_sprite.body.isPlayer = 1;
 	this.player_sprite.setHealth(100);
+	this.player_sprite.events.onKilled = killedHook(this);
 
     if(follow_camera) {
         game.camera.follow(this.player_sprite);
@@ -238,10 +239,16 @@ Player.prototype.render = function() {
     }
 }
 
+
+function killedHook(player) {
+	
+}
+
 function preload () {
 	game.load.spritesheet('player1_sprite', 'chelik_vertikalny.png', 174, 100);
-	game.load.image('box', 'box0.png');
+	game.load.image('box', 'wood.png');
 	game.load.image('bullet', 'sprites/bullet.png');
+	game.load.image('sc_background', 'back.jpg');
 }
 
 var PI = 3.1414926535;
@@ -273,14 +280,17 @@ function generate_field(nb, nt, offset) {	//nb и nt - четные.
         var angle = getRandomInt(0, PI);
         var width = 30 + random(0, 100);
         var height = 30 + random(0, 100);
-        var box = boxes.create(x, y, 'box');
+        //var box = boxes.create(x, y, 'box');
+        var box = game.add.tileSprite(x, y, 100, 100, 'box');
+        boxes.add(box);
         box.width = width;
         box.height = height;
         box.body.kinematic = true;
         //box.body.debug = true;
         box.body.setRectangleFromSprite();
         box.body.rotation = angle;
-        box = boxes.create(game.world.width - x, game.world.height-y, 'box');
+        box = game.add.tileSprite(game.world.width - x, game.world.height-y, 100, 100, 'box');
+        boxes.add(box);
         box.width = width;
         box.height = height;
         box.body.kinematic = true;
@@ -328,6 +338,8 @@ function create() {
 	game.physics.p2.restitution = 0.8;
 	game.stage.backgroundColor = "#EEEEEE";
     game.world.setBounds(0, 0, 1920, 1920);
+    
+    var background = game.add.tileSprite(0, 0, 1920, 1920, 'sc_background');
 
 	player1 = new Player('player1_sprite', {
         num_bullets: 30,
@@ -376,4 +388,24 @@ function render() {
 	game.debug.text(dbg, 32, 32);
 	game.debug.text(game.time.fps, 2, 14, "#00ff00");
 	game.debug.body(player1.player_sprite);
+}
+
+var __point = new Phaser.Point(0, 0);
+function intersects(x, y) {
+	__point.set(x, y);
+	if (game.physics.p2.hitTest(__point).length == 0) return false;
+	else return true;
+}
+
+function getFreePoints(n) {
+	var ans = [];
+	for (var i = 0; i < n; i++) {
+		var x, y;
+		do {
+			x = getRandomInt(0, game.world.width);
+			y = getRandomInt(0, game.world.height);
+		} while (intersects(x, y));
+		ans[i] = [x, y];
+	}
+	return ans;
 }
