@@ -190,6 +190,7 @@ Player.prototype.update = function() {
     if(this.weapon.reloading && (Date.now() - this.weapon.reloading_start >= this.weapon.reloading_time)) {
         this.weapon.reloading = false;
         this.weapon.needs_reload = false;
+        this.weapon.bullet_ind = 0;
     }
     if(game.input.keyboard.isDown(Phaser.Keyboard.R) && !this.weapon.reloading) {
         this.weapon.reloading = true;
@@ -255,6 +256,10 @@ Player.prototype.render = function() {
             this.weapon_hud.lineTo(50 + 5*i, 70);
         }
     }
+    game.debug.text(this.player_sprite.health, 15, 95);
+    this.weapon_hud.lineStyle(10, 0xff0000, 0.5);
+    this.weapon_hud.moveTo(50, 90);
+    this.weapon_hud.lineTo(50 + 2*this.player_sprite.health, 90);
 }
 
 function killedPHook(player) {
@@ -349,7 +354,7 @@ Bot.prototype.update = function() {
     let pdx = this.player1.player_sprite.x - this.player_sprite.x;
     let pdy = this.player1.player_sprite.y - this.player_sprite.y;
     let dist_to_player = Math.sqrt(pdx*pdx + pdy*pdy);
-    if(dist_to_player <= window.screen.availWidth/2) {
+    if(dist_to_player <= window.screen.availWidth/1.5) {
         this.weapon.fire();
     }
     if((this.target_x != this.player_sprite.x) || (this.target_y != this.player_sprite.y)) {
@@ -386,7 +391,7 @@ function preload () {
 var PI = 3.1414926535;
 var sq2 = Math.sqrt(2);
 var vel = 300;
-var player1, player2, bot1;
+var player1, player2, bot1, bot2;
 var cursors;
 var boxes;
 var b0, b1;
@@ -494,6 +499,17 @@ function create() {
         y: game.world.height
     }, player1);
 
+    bot2 = new Bot('player1_sprite', {
+        num_bullets: 10,
+        bullet_speed: 800,
+        fire_rate: 60,
+        max_coll: 3,
+        reloading_time: 2000
+    }, false, {
+        x: game.world.width,
+        y: game.world.height/2
+    }, player1);
+
     //bot1.target_x = 0;
     //bot1.target_y = 0;
 
@@ -530,6 +546,7 @@ function create() {
 function update() {
     player1.update();
     bot1.update();
+    bot2.update();
 }
 
 function render() {
