@@ -6,6 +6,18 @@ if (!Date.now) {
   };
 }
 
+Function.prototype.clone = function() {
+    var that = this;
+    var temp = function temporary() { return that.apply(this, arguments); };
+    for(var key in this) {
+        if (this.hasOwnProperty(key)) {
+            temp[key] = this[key];
+        }
+    }
+    return temp;
+};
+
+
 /**
  * Returns a random number between min (inclusive) and max (exclusive)
  */
@@ -21,7 +33,7 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-var game = new Phaser.Game(1000, 600, Phaser.AUTO, "game-field", {preload:preload, create:create, update:update, render:render});
+var game = new Phaser.Game(window.screen.availWidth, window.screen.availHeight, Phaser.AUTO, "game-field", {preload:preload, create:create, update:update, render:render});
 
 function Weapon(player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, reloading_time) {
     this.player_sprite = player_sprite;
@@ -68,7 +80,6 @@ Weapon.prototype.bulletHit = function(body, bodyB, shapeA, shapeB, equation, bul
     } else { //bullet hit the wall
         dbg = "bullet hit the wall";
     }
-
 }
 
 Weapon.prototype.fire = function() {
@@ -136,21 +147,24 @@ Weapon.prototype.update = function() {
     }
 };
 
-function Player(sprite_name, weapon_settings, follow_camera) {
-    this.player_sprite = game.add.sprite(0, 0, sprite_name);
-    game.physics.p2.enable(this.player_sprite, true);//true - debug
-    this.player_sprite.frame = 1;
-    this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
-    this.player_sprite.animations.add('fire0', [3, 0], 10, false);
-    this.player_sprite.animations.add('fire1', [4, 1], 10, false);
-    this.player_sprite.animations.add('fire2', [5, 2], 10, false);
-    this.player_sprite.enableBody = true;
-    this.player_sprite.body.collideWorldBounds = true;
-    this.player_sprite.anchor.setTo(0.45, 0.54);
-    this.player_sprite.body.setCircle(65);
-    this.player_sprite.body.isPlayer = 1;
-    this.player_sprite.setHealth(100);
-    this.player_sprite.events.onKilled = killedHook(this);
+function Player(sprite_name, weapon_settings, follow_camera, enable_hud, position) {
+    let {x, y} = position;
+    this.player_sprite = game.add.sprite(x, y, sprite_name);
+	game.physics.p2.enable(this.player_sprite, true);//true - debug
+	this.player_sprite.frame = 1;
+	this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
+	this.player_sprite.animations.add('fire0', [3, 0], 10, false);
+	this.player_sprite.animations.add('fire1', [4, 1], 10, false);
+	this.player_sprite.animations.add('fire2', [5, 2], 10, false);
+	this.player_sprite.enableBody = true;
+	this.player_sprite.body.collideWorldBounds = true;
+	this.player_sprite.anchor.setTo(0.45, 0.54);
+	this.player_sprite.body.setCircle(65);
+	this.player_sprite.body.isPlayer = 1;
+	this.player_sprite.setHealth(100);
+    this.player_sprite.name = 'player';
+    this.player_sprite.body.mass = 10;
+    //this.player_sprite.events.onKilled = killedHook(this);
 
     if(follow_camera) {
         game.camera.follow(this.player_sprite);
@@ -158,6 +172,7 @@ function Player(sprite_name, weapon_settings, follow_camera) {
 
     this.weapon_hud = game.add.graphics(0, 0);
     this.weapon_hud.fixedToCamera = true;
+    this.enable_hud = enable_hud;
 
 
     let {num_bullets, bullet_speed, fire_rate, max_coll, reloading_time} = weapon_settings;
@@ -221,6 +236,9 @@ Player.prototype.update = function() {
 }
 
 Player.prototype.render = function() {
+    if(!this.enable_hud) {
+        return;
+    }
     this.weapon_hud.clear();
     this.weapon_hud.lineStyle(2, 0xff0000, 0.5);
     if(this.weapon.reloading) {
@@ -239,9 +257,123 @@ Player.prototype.render = function() {
     }
 }
 
-
 function killedHook(player) {
     
+}
+
+var __point = new Phaser.Point(0, 0);
+
+function intersects(x, y) {
+    __point.set(x, y);
+    if(game.physics.p2.hitTest(__point).length == 0) {
+        return false;
+    }
+    return true;
+}
+
+function get_free_points(n, min_val=0, max_val=-1) {
+    let ans = [];
+    for (var i = 0; i < n; i++) {
+        let x, y;
+        do {
+            if(max_val == -1) {
+                x = getRandomInt(min_val, game.world.width);
+                y = getRandomInt(min_val, game.world.height);
+            }
+            else {
+                x = getRandomInt(min_val, max_val);
+                y = getRandomInt(min_val, max_val);
+            }
+        } while(intersects(x, y));
+        ans[i] = [x, y];
+    }
+    return ans;
+}
+
+function Bot(sprite_name, weapon_settings, follow_camera, position, player1) {
+    this.player1 = player1;
+    let {x, y} = position;
+    this.player_sprite = game.add.sprite(x, y, sprite_name);
+	game.physics.p2.enable(this.player_sprite, true);//true - debug
+	this.player_sprite.frame = 1;
+	this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
+	this.player_sprite.animations.add('fire0', [3, 0], 10, false);
+	this.player_sprite.animations.add('fire1', [4, 1], 10, false);
+	this.player_sprite.animations.add('fire2', [5, 2], 10, false);
+	this.player_sprite.enableBody = true;
+	this.player_sprite.body.collideWorldBounds = true;
+	this.player_sprite.anchor.setTo(0.45, 0.54);
+	this.player_sprite.body.setCircle(65);
+	this.player_sprite.body.isPlayer = 1;
+	this.player_sprite.setHealth(100);
+    this.player_sprite.body.mass = 10;
+
+    this.prev_update = Date.now();
+
+    this.speed = 800;
+
+    if(follow_camera) {
+        game.camera.follow(this.player_sprite);
+    }
+
+    this.target_x = x;
+    this.target_y = y;
+    this.shooting = false;
+
+
+    let {num_bullets, bullet_speed, fire_rate, max_coll, reloading_time} = weapon_settings;
+	this.weapon = new Weapon(this.player_sprite, num_bullets, bullet_speed, fire_rate, max_coll, reloading_time);
+}
+
+Bot.prototype.update = function() {
+    if(!this.player_sprite.alive) {
+        return;
+    }
+    this.player_sprite.body.setZeroVelocity();
+    this.player_sprite.body.rotation = game.physics.arcade.angleBetween(this.player_sprite, this.player1.player_sprite);
+    let now = Date.now();
+    if(now - this.prev_update >= 2000) {
+        this.prev_update = now;
+        this.target_x = this.player1.player_sprite.x;
+        this.target_y = this.player1.player_sprite.y;
+    }
+    if(this.weapon.reloading && (Date.now() - this.weapon.reloading_start >= this.weapon.reloading_time)) {
+        this.weapon.reloading = false;
+        this.weapon.needs_reload = false;
+    }
+    if(this.weapon.needs_reload && !this.weapon.reloading) {
+        this.weapon.reloading = true;
+        this.weapon.reloading_start = Date.now();
+        console.log('Bot Reloading!', this.weapon.reloading_start)
+    }
+    let pdx = this.player1.player_sprite.x - this.player_sprite.x;
+    let pdy = this.player1.player_sprite.y - this.player_sprite.y;
+    let dist_to_player = Math.sqrt(pdx*pdx + pdy*pdy);
+    if(dist_to_player <= window.screen.availWidth/2) {
+        this.weapon.fire();
+    }
+    if((this.target_x != this.player_sprite.x) || (this.target_y != this.player_sprite.y)) {
+        this.player_sprite.animations.play('go');
+        let dx = this.target_x - this.player_sprite.x, dy = this.target_y - this.player_sprite.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        this.player_sprite.body.moveRight(dx*vel/dist);
+        this.player_sprite.body.moveDown(dy*vel/dist);
+    }
+}
+
+function global_overlap_hook(body1, body2) {
+    //console.log('kek');
+    if ((body1.sprite.name === 'player' && body2.sprite.name === 'bullet') || (body2.sprite.name === 'player' && body1.sprite.name === 'bullet')) {
+        if(body1.sprite.name === 'player') {
+            body1.sprite.damage(5);
+        }
+        else {
+            body2.sprite.damage(5);
+        }
+        //dosomething();  //whatever you need on overlap
+        return false;
+    }
+    return true;
 }
 
 function preload () {
@@ -254,7 +386,7 @@ function preload () {
 var PI = 3.1414926535;
 var sq2 = Math.sqrt(2);
 var vel = 300;
-var player1, player2;
+var player1, player2, bot1;
 var cursors;
 var boxes;
 var b0, b1;
@@ -337,8 +469,7 @@ function create() {
     game.physics.startSystem(Phaser.Physics.P2JS);
     game.physics.p2.restitution = 0.8;
     game.stage.backgroundColor = "#EEEEEE";
-    game.world.setBounds(0, 0, 1920, 1920);
-    
+    game.world.setBounds(0, 0, 1920, 1920);    
     var background = game.add.tileSprite(0, 0, 1920, 1920, 'sc_background');
 
     player1 = new Player('player1_sprite', {
@@ -347,7 +478,24 @@ function create() {
         fire_rate: 60,
         max_coll: 3,
         reloading_time: 2000
-    }, true);
+    }, true, true, {
+        x: 100,
+        y: 100
+    });
+
+    bot1 = new Bot('player1_sprite', {
+        num_bullets: 10,
+        bullet_speed: 800,
+        fire_rate: 60,
+        max_coll: 3,
+        reloading_time: 2000
+    }, false, {
+        x: game.world.width,
+        y: game.world.height
+    }, player1);
+
+    //bot1.target_x = 0;
+    //bot1.target_y = 0;
 
     /*player2 = new Player('player1_sprite', {
         num_bullets: 30,
@@ -381,6 +529,7 @@ function create() {
 
 function update() {
     player1.update();
+    bot1.update();
 }
 
 function render() {
