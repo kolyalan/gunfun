@@ -1,5 +1,7 @@
 'use strict'
 
+var gameOverFlag = 0;
+
 if (!Date.now) {
   Date.now = function now() {
     return new Date().getTime();
@@ -261,9 +263,15 @@ Player.prototype.render = function() {
     this.weapon_hud.moveTo(50, 90);
     this.weapon_hud.lineTo(50 + 2*this.player_sprite.health, 90);
 }
-
+var __onKillText, __onKillBar;
 function killedPHook(player) {
-    var text = new Phaser.Text(game, game.camera.x + 100, game.camera.y + 100, "You are killed");
+	__onKillBar = game.add.graphics();
+    __onKillBar.beginFill(0x000000, 0.2);
+    __onKillBar.drawRect(game.camera.x, game.camera.y + 100, game.camera.width, 100);
+	var style = { font: "bold 32px Arial", fill: "#faa", boundsAlignH: "center", boundsAlignV: "middle" };
+    __onKillText = game.add.text(game.camera.x + game.camera.width/2-100, game.camera.y + 110, "You are killed! \nPress R to restart", style);
+    __onKillText.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
+    gameOverFlag = 1;
 }
 
 var __point = new Phaser.Point(0, 0);
@@ -468,6 +476,22 @@ function generate_field(nb, nt, offset) {   //nb и nt - четные.
     }*/
 }
 
+function restart() {
+    player1.player_sprite.body.x = 100;
+    player1.player_sprite.body.y = 100;
+    player1.weapon.num_bullets = 30;
+    player1.player_sprite.revive();
+    bot1.player_sprite.body.x = game.world.width;
+    bot1.player_sprite.body.y = game.world.height;
+    bot1.player_sprite.revive();
+    bot2.player_sprite.body.x = game.world.width;
+    bot2.player_sprite.body.y = game.world.height/2;
+    bot2.player_sprite.revive();
+    __onKillText.destroy();
+    __onKillBar.destroy();
+    gameOverFlag = 0;
+}
+
 function create() {
     game.time.advancedTiming = true;
     game.input.mouse.capture = true;
@@ -544,9 +568,15 @@ function create() {
 }
 
 function update() {
-    player1.update();
-    bot1.update();
-    bot2.update();
+	if (gameOverFlag) {
+		if (game.input.keyboard.isDown(Phaser.Keyboard.R)) {
+			restart();
+		}
+	} else {
+		player1.update();
+		bot1.update();
+		bot2.update();
+	}
 }
 
 function render() {
