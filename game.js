@@ -277,7 +277,7 @@ function killedPHook(player) {
 
 function killedBHook(player) {
     KillCount++;
-    if (KillCount >= 2) {
+    if (KillCount >= 3) {
         __onKillBar = game.add.graphics();
         __onKillBar.beginFill(0x000000, 0.2);
         __onKillBar.drawRect(game.camera.x, game.camera.y + 100, game.camera.width, 100);
@@ -415,7 +415,7 @@ function preload () {
 var PI = 3.1414926535;
 var sq2 = Math.sqrt(2);
 var vel = 300;
-var player1, player2, bot1, bot2;
+var player1, player2, bot1, bot2, bot3;
 var cursors;
 var boxes;
 var b0, b1;
@@ -503,6 +503,9 @@ function restart() {
     bot2.player_sprite.body.x = game.world.width;
     bot2.player_sprite.body.y = game.world.height/2;
     bot2.player_sprite.revive();
+    bot3.player_sprite.body.x = game.world.width/2;
+    bot3.player_sprite.body.y = game.world.height;
+    bot3.player_sprite.revive();
     __onKillText.destroy();
     __onKillBar.destroy();
     gameOverFlag = 0;
@@ -550,6 +553,18 @@ function create() {
         x: game.world.width,
         y: game.world.height/2
     }, player1);
+    
+    bot3 = new Bot('player1_sprite', {
+        num_bullets: 10,
+        bullet_speed: 800,
+        fire_rate: 60,
+        max_coll: 3,
+        reloading_time: 2000
+    }, false, {
+        x: game.world.width/2,
+        y: game.world.height
+    }, player1);
+    
 
     //bot1.target_x = 0;
     //bot1.target_y = 0;
@@ -593,6 +608,7 @@ function update() {
 		player1.update();
 		bot1.update();
 		bot2.update();
+		bot3.update();
 	}
 }
 
