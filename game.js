@@ -1,6 +1,7 @@
 'use strict'
 
 var gameOverFlag = 0;
+var KillCount = 0;
 
 if (!Date.now) {
   Date.now = function now() {
@@ -152,7 +153,7 @@ Weapon.prototype.update = function() {
 function Player(sprite_name, weapon_settings, follow_camera, enable_hud, position) {
     let {x, y} = position;
     this.player_sprite = game.add.sprite(x, y, sprite_name);
-	game.physics.p2.enable(this.player_sprite, true);//true - debug
+	game.physics.p2.enable(this.player_sprite, false);//true - debug
 	this.player_sprite.frame = 1;
 	this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
 	this.player_sprite.animations.add('fire0', [3, 0], 10, false);
@@ -274,6 +275,19 @@ function killedPHook(player) {
     gameOverFlag = 1;
 }
 
+function killedBHook(player) {
+    KillCount++;
+    if (KillCount >= 2) {
+        __onKillBar = game.add.graphics();
+        __onKillBar.beginFill(0x000000, 0.2);
+        __onKillBar.drawRect(game.camera.x, game.camera.y + 100, game.camera.width, 100);
+        var style = { font: "bold 32px Arial", fill: "#afa", boundsAlignH: "center", boundsAlignV: "middle" };
+        __onKillText = game.add.text(game.camera.x + game.camera.width/2-100, game.camera.y + 110, "You win! \nPress R to restart", style);
+        __onKillText.setShadow(3, 3, 'rgba(0,0,0,0.5)', 2);
+        gameOverFlag = 1;
+    }
+}
+
 var __point = new Phaser.Point(0, 0);
 
 function intersects(x, y) {
@@ -307,7 +321,7 @@ function Bot(sprite_name, weapon_settings, follow_camera, position, player1) {
     this.player1 = player1;
     let {x, y} = position;
     this.player_sprite = game.add.sprite(x, y, sprite_name);
-	game.physics.p2.enable(this.player_sprite, true);//true - debug
+	game.physics.p2.enable(this.player_sprite, false);//true - debug
 	this.player_sprite.frame = 1;
 	this.player_sprite.animations.add('go', [1, 0, 1, 2], 7, true);
 	this.player_sprite.animations.add('fire0', [3, 0], 10, false);
@@ -320,6 +334,7 @@ function Bot(sprite_name, weapon_settings, follow_camera, position, player1) {
 	this.player_sprite.body.isPlayer = 1;
 	this.player_sprite.setHealth(100);
     this.player_sprite.body.mass = 10;
+    this.player_sprite.events.onKilled.add(killedBHook, this);
 
     this.prev_update = Date.now();
 
@@ -388,6 +403,7 @@ function global_overlap_hook(body1, body2) {
     }
     return true;
 }
+
 
 function preload () {
     game.load.spritesheet('player1_sprite', 'chelik_vertikalny.png', 174, 100);
@@ -490,6 +506,7 @@ function restart() {
     __onKillText.destroy();
     __onKillBar.destroy();
     gameOverFlag = 0;
+    KillCount = 0;
 }
 
 function create() {

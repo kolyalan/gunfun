@@ -4,9 +4,6 @@
 }
 
 #game-field {
-	width:1000px;
-	height:600px;
 	display:block;
-	margin: 30px auto;
 	padding: 0;
 }
